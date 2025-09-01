@@ -1,24 +1,60 @@
-import { COMMUNITY_API_BASE } from '../config/community'
+// src/services/authApi.js
+import { API } from "../config/api";
 
-export async function authRegister({ name, email, password, role = "candidate", company = "", location = "India" }) {
-  const res = await fetch(`${COMMUNITY_API_BASE}/api/auth/register`, {
+// Small helper to standardize fetch + JSON + errors
+async function postJSON(url, body) {
+  const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, email, password, role, company, location })
+    body: JSON.stringify(body || {})
   });
-  return res.json();
+  // handle non-2xx http
+  let data;
+  try { data = await res.json(); } catch { data = { message: "Invalid JSON" }; }
+  if (!res.ok) {
+    // DRF returns your envelope on error too; surface it
+    throw new Error(data?.message || `HTTP ${res.status}`);
+  }
+  return data;
 }
 
-// Example inside your signup handler
-const handleSignup = async (formData) => {
-  try {
-    const result = await authRegister(formData);
-    if (result.user) {
-      // Registration successful, redirect or show success
-    } else if (result.error) {
-      // Show error message to user
-    }
-  } catch (err) {
-    // Handle network or unexpected errors
-  }
-};
+/** Send OTP to email */
+export async function requestEmailVerification(email) {
+  return postJSON(`${API}/users/request-email-verification/`, { email });
+}
+
+/** Verify OTP for email */
+export async function verifyEmail(email, otp) {
+  return postJSON(`${API}/users/verify-email/`, { email, otp });
+}
+
+/** Register user (matches your UserRegisterView) */
+export async function registerUser(payload) {
+  // payload example: { name, email, password, role, company, location, phone, work_status }
+  return postJSON(`${API}/users/register/`, payload);
+}
+
+
+/** Login user (email + password) */
+export async function loginUser(payload) {
+  return postJSON(`${API}/users/login/`, payload);
+}
+
+// ✅ Forgot Password API
+export async function forgotPassword(email) {
+  return postJSON(`${API}/users/forgot-password/`, { email });
+}
+
+/** Reset password */
+export async function resetPassword({ email, otp, new_password }) {
+  return postJSON(`${API}/users/reset-password/`, { email, otp, new_password });
+}
+
+export async function checkOldPassword(email, password) {
+  const res = await postJSON(`${API}/users/check-old-password/`, {
+    email,
+    password,
+  });
+  return res;
+}
+

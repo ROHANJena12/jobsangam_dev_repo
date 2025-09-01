@@ -7,11 +7,13 @@ import { ToastProvider } from './components/Toast.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import { auth } from './services/store'
 import { OWNER_EMAIL } from './config/owner'
+import ResetPassword from "./pages/ResetPassword";
 
 // Core pages (lazy)
 const Home = lazy(() => import('./pages/Home.jsx'));
 const Login = lazy(() => import('./pages/Login.jsx'));
 const Signup = lazy(() => import('./pages/Signup.jsx'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword.jsx')); // ✅ ADDED
 const CandidateDashboard = lazy(() => import('./pages/CandidateDashboard.jsx'));
 const CandidateApplications = lazy(() => import('./pages/CandidateApplications.jsx'));
 const CandidateSaved = lazy(() => import('./pages/CandidateSaved.jsx'));
@@ -46,28 +48,29 @@ const OwnerJobs = lazy(() => import('./pages/OwnerJobs.jsx'));
 const OwnerAudit = lazy(() => import('./pages/OwnerAudit.jsx'));
 const PostJobPage = lazy(() => import('./pages/PostJobPage.jsx'));
 
-// Simple role gate
-function RequireRole({ role, children }){
+function RequireRole({ role, children }) {
   const u = auth.me()
-  if(!u) return <Navigate to="/login" replace />
+  if (!u) return <Navigate to="/login" replace />
   const effRole = (u.role === 'admin' && u.email !== OWNER_EMAIL) ? 'employer' : u.role
   const ok = Array.isArray(role) ? role.includes(effRole) : effRole === role
   return ok ? children : <Navigate to="/" replace />
 }
 
-export default function App(){
+export default function App() {
   return (
     <ToastProvider>
       <ErrorBoundary>
         <Navbar />
         <div className="container-p">
           <RouteMeta />
-          <div id="app-health" style={{position:'absolute',left:-9999,top:-9999}}>ok</div>
+          <div id="app-health" style={{ position: 'absolute', left: -9999, top: -9999 }}>ok</div>
           <Suspense fallback={<div style={{ padding: '24px' }}>Loading…</div>}>
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} /> {/* ✅ NEW */}
+              <Route path="/reset-password" element={<ResetPassword />} />
 
               {/* Candidate */}
               <Route path="/candidate" element={<RequireRole role="candidate"><CandidateDashboard /></RequireRole>} />
@@ -79,19 +82,19 @@ export default function App(){
               <Route path="/candidate/booking" element={<RequireRole role="candidate"><CandidateBooking /></RequireRole>} />
 
               {/* Employer/Recruiter */}
-              <Route path="/employer" element={<RequireRole role={['employer','recruiter','admin']}><EmployerDashboard /></RequireRole>} />
-              <Route path="/recruiter/jobs" element={<RequireRole role={['employer','recruiter','admin']}><RecruiterJobsRollup /></RequireRole>} />
-              <Route path="/recruiter/pipeline" element={<RequireRole role={['employer','recruiter','admin']}><RecruiterPipeline /></RequireRole>} />
-              <Route path="/recruiter/analytics" element={<RequireRole role={['employer','recruiter','admin']}><RecruiterAnalyticsPro /></RequireRole>} />
-              <Route path="/recruiter/settings" element={<RequireRole role={['employer','recruiter','admin']}><RecruiterSettings /></RequireRole>} />
-              <Route path="/recruiter/candidates" element={<RequireRole role={['employer','recruiter','admin']}><RecruiterCandidates /></RequireRole>} />
-              <Route path="/recruiter/schedule" element={<RequireRole role={['employer','recruiter','admin']}><RecruiterSchedule /></RequireRole>} />
-              <Route path="/recruiter/my-jobs" element={<RequireRole role={['employer','recruiter','admin']}><RecruiterMyJobs /></RequireRole>} />
-              <Route path="/recruiter/post" element={<RequireRole role={['employer','recruiter','admin']}><RecruiterPostJob /></RequireRole>} />
+              <Route path="/employer" element={<RequireRole role={['employer', 'recruiter', 'admin']}><EmployerDashboard /></RequireRole>} />
+              <Route path="/recruiter/jobs" element={<RequireRole role={['employer', 'recruiter', 'admin']}><RecruiterJobsRollup /></RequireRole>} />
+              <Route path="/recruiter/pipeline" element={<RequireRole role={['employer', 'recruiter', 'admin']}><RecruiterPipeline /></RequireRole>} />
+              <Route path="/recruiter/analytics" element={<RequireRole role={['employer', 'recruiter', 'admin']}><RecruiterAnalyticsPro /></RequireRole>} />
+              <Route path="/recruiter/settings" element={<RequireRole role={['employer', 'recruiter', 'admin']}><RecruiterSettings /></RequireRole>} />
+              <Route path="/recruiter/candidates" element={<RequireRole role={['employer', 'recruiter', 'admin']}><RecruiterCandidates /></RequireRole>} />
+              <Route path="/recruiter/schedule" element={<RequireRole role={['employer', 'recruiter', 'admin']}><RecruiterSchedule /></RequireRole>} />
+              <Route path="/recruiter/my-jobs" element={<RequireRole role={['employer', 'recruiter', 'admin']}><RecruiterMyJobs /></RequireRole>} />
+              <Route path="/recruiter/post" element={<RequireRole role={['employer', 'recruiter', 'admin']}><RecruiterPostJob /></RequireRole>} />
 
               {/* Messaging & notifications */}
-              <Route path="/messages" element={<RequireRole role={['candidate','employer','recruiter','admin']}><Messages /></RequireRole>} />
-              <Route path="/notifications" element={<RequireRole role={['candidate','employer','recruiter','admin']}><Notifications /></RequireRole>} />
+              <Route path="/messages" element={<RequireRole role={['candidate', 'employer', 'recruiter', 'admin']}><Messages /></RequireRole>} />
+              <Route path="/notifications" element={<RequireRole role={['candidate', 'employer', 'recruiter', 'admin']}><Notifications /></RequireRole>} />
 
               {/* Public / misc */}
               <Route path="/jobs" element={<JobSearch />} />
@@ -102,7 +105,7 @@ export default function App(){
               <Route path="/plans" element={<Plans />} />
               <Route path="/alerts" element={<Alerts />} />
 
-              {/* Admin owner */}
+              {/* Admin / Owner */}
               <Route path="/owner" element={<AdminCenter />} />
               <Route path="/owner/users" element={<OwnerUsers />} />
               <Route path="/owner/jobs" element={<OwnerJobs />} />
@@ -120,5 +123,5 @@ export default function App(){
         </div>
       </ErrorBoundary>
     </ToastProvider>
-  )
+  );
 }
