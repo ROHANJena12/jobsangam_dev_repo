@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+  <head>
+    <script>
+      (function(){
+        try {
+          var stored = localStorage.getItem('theme');
+          var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var theme = stored === 'dark' || stored === 'light' ? stored : (prefersDark ? 'dark' : 'light');
+          document.documentElement.setAttribute('data-theme', theme);
+        } catch(e){}
+      })();
+    </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HireHorizonHub — Jobs & Hiring</title>
+    <script>
+    // BOOT_DIAG: minimal pre-React error surface
+    (function(){
+      var banner;
+      function ensure(){
+        if(!banner){
+          banner = document.createElement('div');
+          banner.id = 'boot-diag';
+          banner.style.cssText = 'position:fixed;left:0;right:0;top:0;padding:8px 12px;background:#111;color:#fff;font:14px/1.4 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto;z-index:99999';
+          banner.textContent = 'Booting…';
+          document.addEventListener('DOMContentLoaded', function(){ document.body.appendChild(banner); });
+        }
+      }
+      window.addEventListener('error', function(e){ ensure(); banner.style.background='#b91c1c'; banner.textContent = 'Error: '+ (e.error && e.error.message ? e.error.message : e.message); });
+      window.addEventListener('unhandledrejection', function(e){ ensure(); banner.style.background='#b91c1c'; banner.textContent = 'Promise error: '+ (e.reason && e.reason.message ? e.reason.message : e.reason); });
+      window.__bootDiagOk = function(msg){ ensure(); banner.style.background='#0f766e'; banner.textContent = msg || 'App mounted'; setTimeout(function(){ banner.remove(); }, 1200); };
+    })();
+  </script>
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
