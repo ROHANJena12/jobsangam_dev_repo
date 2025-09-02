@@ -1,5 +1,5 @@
 // // src/pages/Signup.jsx
-// import React, { useState } from "react";
+// import React, { useState, useEffect, useMemo } from "react"; // ⬅️ added useEffect/useMemo
 // import { motion } from "framer-motion";
 // import { Link } from "react-router-dom";
 // import {
@@ -8,6 +8,16 @@
 //   registerUser,
 // } from "../services/authApi";
 // import CustomModal from "../components/CustomModal";
+
+// /* ===== OTP cooldown helpers (added) ===== */
+// const COOLDOWN_SEC = 120; // 2 minutes
+// const nowSec = () => Math.floor(Date.now() / 1000);
+// const mmss = (s) => {
+//   const m = Math.floor(s / 60);
+//   const sec = s % 60;
+//   return `${m}:${sec < 10 ? "0" : ""}${sec}`;
+// };
+// /* ======================================= */
 
 // // ✅ Password validation helper
 // function validatePassword(password) {
@@ -44,6 +54,34 @@
 //   const [modalMessage, setModalMessage] = useState("");
 //   const [modalType, setModalType] = useState("success");
 
+//   /* ===== OTP cooldown state (added) ===== */
+//   const cooldownKey = useMemo(
+//     () => (email ? `otpCooldown:${email.toLowerCase().trim()}` : ""),
+//     [email]
+//   );
+//   const [otpSentAtSec, setOtpSentAtSec] = useState(0);
+//   const [tick, setTick] = useState(0);
+
+//   // keep a 1-second ticker
+//   useEffect(() => {
+//     const id = setInterval(() => setTick((t) => t + 1), 1000);
+//     return () => clearInterval(id);
+//   }, []);
+
+//   // load persisted timestamp when email changes
+//   useEffect(() => {
+//     if (!cooldownKey) return;
+//     try {
+//       const v = localStorage.getItem(cooldownKey);
+//       if (v) setOtpSentAtSec(parseInt(v, 10) || 0);
+//     } catch {}
+//   }, [cooldownKey]);
+
+//   const elapsed = otpSentAtSec ? nowSec() - otpSentAtSec : COOLDOWN_SEC + 1;
+//   const remaining = Math.max(0, COOLDOWN_SEC - elapsed);
+//   const canRequestOtp = !!email && !emailLoading && remaining === 0;
+//   /* ===================================== */
+
 //   // ✅ Email OTP handler
 //   async function handleEmailVerify() {
 //     if (!email) {
@@ -52,11 +90,23 @@
 //       setModalOpen(true);
 //       return;
 //     }
+//     if (!canRequestOtp) return; // ⬅️ respect cooldown on UI
+
 //     try {
 //       setEmailLoading(true);
 //       const res = await requestEmailVerification(email);
 //       if (res.status === "success") {
 //         setShowOtp(true);
+
+//         // record/send time for cooldown (added)
+//         const sentAt = nowSec();
+//         setOtpSentAtSec(sentAt);
+//         if (cooldownKey) {
+//           try {
+//             localStorage.setItem(cooldownKey, String(sentAt));
+//           } catch {}
+//         }
+
 //         setModalMessage("OTP sent to your email.");
 //         setModalType("success");
 //       } else {
@@ -197,7 +247,7 @@
 
 //         {/* Email */}
 //         <label className="block text-sm font-medium mb-1">Email</label>
-//         <div className="flex mb-4">
+//         <div className="flex mb-1">
 //           <input
 //             type="email"
 //             placeholder="Enter your email"
@@ -209,11 +259,30 @@
 //             type="button"
 //             onClick={handleEmailVerify}
 //             className="px-4 py-2 bg-indigo-600 rounded-r-md hover:bg-indigo-700 transition disabled:opacity-60"
-//             disabled={emailLoading || !email}
+//             disabled={!canRequestOtp}
+//             title={
+//               !email
+//                 ? "Enter email"
+//                 : remaining > 0
+//                 ? `You can resend in ${mmss(remaining)}`
+//                 : "Send OTP"
+//             }
 //           >
-//             {emailLoading ? "Sending..." : "Verify"}
+//             {emailLoading
+//               ? "Sending..."
+//               : remaining > 0
+//               ? `Resend ${mmss(remaining)}`
+//               : "Verify"}
 //           </button>
 //         </div>
+
+//         {/* Small note about validity (only when OTP was sent) */}
+//         {showOtp && otpSentAtSec > 0 && (
+//           <div className="text-xs text-gray-400 mb-3">
+//             OTP is valid for <strong>2 minutes</strong>. Time left:{" "}
+//             <strong>{mmss(Math.max(0, COOLDOWN_SEC - (nowSec() - otpSentAtSec)))}</strong>
+//           </div>
+//         )}
 
 //         {/* OTP */}
 //         {showOtp && (
@@ -345,9 +414,8 @@
 //   );
 // }
 
-
-// src/pages/Signup.jsx
-import React, { useState, useEffect, useMemo } from "react"; // ⬅️ added useEffect/useMemo
+/// src/pages/Signup.jsx
+import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
@@ -357,7 +425,7 @@ import {
 } from "../services/authApi";
 import CustomModal from "../components/CustomModal";
 
-/* ===== OTP cooldown helpers (added) ===== */
+/* ===== OTP cooldown helpers ===== */
 const COOLDOWN_SEC = 120; // 2 minutes
 const nowSec = () => Math.floor(Date.now() / 1000);
 const mmss = (s) => {
@@ -365,7 +433,7 @@ const mmss = (s) => {
   const sec = s % 60;
   return `${m}:${sec < 10 ? "0" : ""}${sec}`;
 };
-/* ======================================= */
+/* ================================= */
 
 // ✅ Password validation helper
 function validatePassword(password) {
@@ -402,7 +470,7 @@ export default function Signup() {
   const [modalMessage, setModalMessage] = useState("");
   const [modalType, setModalType] = useState("success");
 
-  /* ===== OTP cooldown state (added) ===== */
+  /* ===== OTP cooldown state ===== */
   const cooldownKey = useMemo(
     () => (email ? `otpCooldown:${email.toLowerCase().trim()}` : ""),
     [email]
@@ -428,7 +496,7 @@ export default function Signup() {
   const elapsed = otpSentAtSec ? nowSec() - otpSentAtSec : COOLDOWN_SEC + 1;
   const remaining = Math.max(0, COOLDOWN_SEC - elapsed);
   const canRequestOtp = !!email && !emailLoading && remaining === 0;
-  /* ===================================== */
+  /* ================================= */
 
   // ✅ Email OTP handler
   async function handleEmailVerify() {
@@ -438,7 +506,7 @@ export default function Signup() {
       setModalOpen(true);
       return;
     }
-    if (!canRequestOtp) return; // ⬅️ respect cooldown on UI
+    if (!canRequestOtp) return;
 
     try {
       setEmailLoading(true);
@@ -446,7 +514,6 @@ export default function Signup() {
       if (res.status === "success") {
         setShowOtp(true);
 
-        // record/send time for cooldown (added)
         const sentAt = nowSec();
         setOtpSentAtSec(sentAt);
         if (cooldownKey) {
@@ -484,7 +551,7 @@ export default function Signup() {
       if (res.status === "success") {
         setModalMessage("Email verified successfully!");
         setModalType("success");
-        setOtpVerified(true); // 🔑 ✅ Mark as verified
+        setOtpVerified(true);
       } else {
         setModalMessage(res.message || "OTP verification failed.");
         setModalType("error");
@@ -501,8 +568,15 @@ export default function Signup() {
   // ✅ Final Signup submission
   async function handleSignup(e) {
     e.preventDefault();
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !phone || !workStatus) {
       setModalMessage("Please fill all required fields.");
+      setModalType("error");
+      setModalOpen(true);
+      return;
+    }
+
+    if (!otpVerified) {
+      setModalMessage("Please verify your email with OTP before signing up.");
       setModalType("error");
       setModalOpen(true);
       return;
@@ -545,6 +619,17 @@ export default function Signup() {
     }
   }
 
+  // ✅ Disable Sign Up button unless everything is valid
+  const isFormValid =
+    name &&
+    email &&
+    phone.length === 10 &&
+    /^\d{10}$/.test(phone) &&
+    validatePassword(password).valid &&
+    workStatus &&
+    otpVerified &&
+    !signupLoading;
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-900 to-gray-800 text-white px-6">
       <motion.div
@@ -580,7 +665,6 @@ export default function Signup() {
         >
           <option>Candidate</option>
           <option>Recruiter</option>
-          <option>Admin</option>
         </select>
 
         {/* Full Name */}
@@ -624,7 +708,6 @@ export default function Signup() {
           </button>
         </div>
 
-        {/* Small note about validity (only when OTP was sent) */}
         {showOtp && otpSentAtSec > 0 && (
           <div className="text-xs text-gray-400 mb-3">
             OTP is valid for <strong>2 minutes</strong>. Time left:{" "}
@@ -680,7 +763,6 @@ export default function Signup() {
           </span>
         </div>
 
-        {/* Password Tips */}
         {passwordTouched && (
           <div className="text-sm mb-4 space-y-1 text-gray-400">
             <div className={validatePassword(password).lengthOk ? "text-green-400" : "text-red-500"}>
@@ -702,7 +784,10 @@ export default function Signup() {
           placeholder="Enter your phone number"
           className="w-full mb-4 px-4 py-2 rounded-md bg-gray-800 border border-gray-700"
           value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          onChange={(e) => {
+            const val = e.target.value.replace(/\D/g, "");
+            if (val.length <= 10) setPhone(val);
+          }}
         />
 
         {/* Work Status */}
@@ -738,7 +823,7 @@ export default function Signup() {
         <button
           type="submit"
           className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl font-semibold shadow-lg hover:scale-105 transition-transform mb-4 disabled:opacity-60"
-          disabled={signupLoading}
+          disabled={!isFormValid}
         >
           {signupLoading ? "Submitting..." : "Sign Up"}
         </button>
@@ -751,7 +836,6 @@ export default function Signup() {
         </p>
       </form>
 
-      {/* Modal */}
       <CustomModal
         isOpen={modalOpen}
         message={modalMessage}
@@ -761,3 +845,4 @@ export default function Signup() {
     </div>
   );
 }
+
