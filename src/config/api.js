@@ -1,11 +1,9 @@
 // src/config/api.js
 
-// Prefer .env variable if present, else default to local dev.
-const API_BASE_URL =
-  import.meta?.env?.VITE_API_BASE_URL?.replace(/\/+$/,'') ||
-  "http://127.0.0.1:8000"; // no trailing slash
+// Use VITE_API_BASE_URL if provided; otherwise default to nginx proxy path `/api`.
+// IMPORTANT: If you set VITE_API_BASE_URL, make it the FULL base (e.g. "/api" or "https://api.example.com/api")
+// and do NOT append another "/api" in code elsewhere.
+const API = (import.meta?.env?.VITE_API_BASE_URL || '/api').replace(/\/+$/, '');
 
-// Always export full /api base
-export const API = `${API_BASE_URL}/api`;
-
+export { API };
 export default API;
