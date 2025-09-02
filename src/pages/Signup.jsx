@@ -415,7 +415,7 @@
 // }
 
 /// src/pages/Signup.jsx
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
@@ -470,6 +470,9 @@ export default function Signup() {
   const [modalMessage, setModalMessage] = useState("");
   const [modalType, setModalType] = useState("success");
 
+  // ✅ OTP input ref for autofocus
+  const otpInputRef = useRef(null);
+
   /* ===== OTP cooldown state ===== */
   const cooldownKey = useMemo(
     () => (email ? `otpCooldown:${email.toLowerCase().trim()}` : ""),
@@ -478,13 +481,11 @@ export default function Signup() {
   const [otpSentAtSec, setOtpSentAtSec] = useState(0);
   const [tick, setTick] = useState(0);
 
-  // keep a 1-second ticker
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 1000);
     return () => clearInterval(id);
   }, []);
 
-  // load persisted timestamp when email changes
   useEffect(() => {
     if (!cooldownKey) return;
     try {
@@ -498,7 +499,6 @@ export default function Signup() {
   const canRequestOtp = !!email && !emailLoading && remaining === 0;
   /* ================================= */
 
-  // ✅ Email OTP handler
   async function handleEmailVerify() {
     if (!email) {
       setModalMessage("Please enter an email first.");
@@ -524,6 +524,11 @@ export default function Signup() {
 
         setModalMessage("OTP sent to your email.");
         setModalType("success");
+
+        // ✅ Focus OTP input as soon as it appears
+        setTimeout(() => {
+          otpInputRef.current?.focus();
+        }, 100);
       } else {
         setModalMessage(res.message || "Could not send OTP.");
         setModalType("error");
@@ -537,7 +542,6 @@ export default function Signup() {
     }
   }
 
-  // ✅ OTP submission and verification
   async function handleOtpSubmit() {
     if (!otp) {
       setModalMessage("Please enter the OTP.");
@@ -565,7 +569,6 @@ export default function Signup() {
     }
   }
 
-  // ✅ Final Signup submission
   async function handleSignup(e) {
     e.preventDefault();
     if (!name || !email || !password || !phone || !workStatus) {
@@ -619,7 +622,6 @@ export default function Signup() {
     }
   }
 
-  // ✅ Disable Sign Up button unless everything is valid
   const isFormValid =
     name &&
     email &&
@@ -719,15 +721,22 @@ export default function Signup() {
         {showOtp && (
           <>
             <label className="block text-sm font-medium mb-1">Enter OTP</label>
-            <div className="flex mb-4">
+            <div className="flex mb-4 items-center">
               <input
                 type="text"
-                placeholder="Enter the OTP sent to email"
+                placeholder="Enter 6-digit OTP"
                 className="flex-1 px-4 py-2 rounded-l-md bg-gray-800 border border-gray-700"
                 value={otp}
-                onChange={(e) => setOtp(e.target.value)}
+                ref={otpInputRef} // ✅ autofocus
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, "");
+                  if (val.length <= 6) setOtp(val);
+                }}
                 disabled={otpVerified}
               />
+              {otp.length === 6 && !otpVerified && (
+                <span className="ml-2 text-green-500 font-bold">✔</span>
+              )}
               <button
                 type="button"
                 onClick={handleOtpSubmit}
@@ -736,7 +745,7 @@ export default function Signup() {
                     ? "bg-green-700 text-white cursor-default"
                     : "bg-green-600 hover:bg-green-700"
                 }`}
-                disabled={otpLoading || otpVerified || !otp}
+                disabled={otpLoading || otpVerified || otp.length !== 6}
               >
                 {otpVerified ? "Verified" : otpLoading ? "Verifying..." : "Submit OTP"}
               </button>
@@ -845,4 +854,5 @@ export default function Signup() {
     </div>
   );
 }
+
 
