@@ -99,6 +99,7 @@ export default function Navbar() {
           height: 56,
           gap: 12,
           justifyContent: 'space-between',
+          margin:'10px'
         }}
       >
         {/* LEFT SIDE */}
@@ -119,7 +120,7 @@ export default function Navbar() {
             </>
           )}
 
-          {u?.role === 'employer' && (
+          {u?.role === 'recruiter' && (
             <>
               {link('/recruiter/my-jobs', 'My Jobs')}
               {link('/recruiter/post-job', 'Post a Job')}

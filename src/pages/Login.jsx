@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, Link } from "react-router-dom";
 import { loginUser } from "../services/authApi";
+import { write } from "../services/store";
 import CustomModal from "../components/CustomModal";
 
 export default function Login() {
@@ -28,14 +29,32 @@ export default function Login() {
     try {
       setLoginLoading(true);
       const res = await loginUser({ email, password });
-
       if (res.status === "success") {
+        // Store user data in localStorage for session management
+
+        const userData = {
+          email: res.data?.email,
+          name: res.data?.name,
+          role: res.data?.role,
+          company: res.data?.company,
+        };
+        write("hh_user", userData);
+
         setModalMessage("Login successful!");
         setModalType("success");
         setModalOpen(true);
         setTimeout(() => {
           setModalOpen(false);
-          navigate("/");
+          // Redirect based on user role
+          const redirectPath =
+            userData.role === "candidate"
+              ? "/candidate"
+              : userData.role === "recruiter"
+              ? "/employer"
+              : userData.role === "admin"
+              ? "/admin"
+              : "/";
+          navigate(redirectPath);
         }, 1500);
       } else {
         setModalMessage(res.message || "Invalid email or password.");
@@ -116,7 +135,10 @@ export default function Login() {
 
         {/* Forgot Password */}
         <p className="text-center text-sm text-gray-400 mb-2">
-          <Link to="/forgot-password" className="text-indigo-400 hover:underline">
+          <Link
+            to="/forgot-password"
+            className="text-indigo-400 hover:underline"
+          >
             Forgot password?
           </Link>
         </p>
